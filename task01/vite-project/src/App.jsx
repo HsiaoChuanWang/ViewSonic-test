@@ -7,17 +7,32 @@ function App() {
   const [outerWidth, setOuterWidth] = useState("w-[400px]");
   const textareaRef = useRef(null);
 
-  //Use useEffect and useRef to resize the height of textarea automatically
+  //Use useEffect and useRef to resize textarea automatically
   useEffect(() => {
     const textarea = textareaRef.current;
     if (textarea) {
+      const innerTextLength = innerText.length;
+      const innerTextWidth = innerTextLength * 16;
       let currentHeight = textarea.scrollHeight;
-      if (currentHeight > 46) {
+
+      if (
+        (outerWidth === "w-[400px]" && innerTextWidth < 300) ||
+        (outerWidth === "w-[800px]" && innerTextWidth < 700)
+      ) {
+        const initialWidth = 160;
+        const textAreaWidth =
+          innerTextWidth < initialWidth ? initialWidth : innerTextWidth;
+        textarea.style.width = `${textAreaWidth}px`;
+      } else {
+        textarea.style.width = "100%";
+      }
+
+      if (currentHeight < 48) {
+        textarea.style.height = "24px";
+      } else {
         textarea.style.height = "auto";
         currentHeight = textarea.scrollHeight;
         textarea.style.height = currentHeight + "px";
-      } else {
-        textarea.style.height = "24px";
       }
     }
   }, [innerText, isEditable, outerWidth]);
@@ -44,7 +59,7 @@ function App() {
         {isEditable ? (
           <textarea
             ref={textareaRef}
-            className={`border-black border border-solid w-full px-2 bg-slate-200 overflow-hidden h-6 leading-6`}
+            className={`border-black border border-solid px-2 bg-slate-200 overflow-hidden h-6 leading-6`}
             value={innerText}
             onChange={(e) => handleInputChange(e)}
           ></textarea>
