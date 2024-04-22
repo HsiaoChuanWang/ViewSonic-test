@@ -1,0 +1,69 @@
+### Task 3: Understanding
+
+Please answer the following three questions in .txt file based on the javascript code below.
+
+1. Simply describe what "function1" will do.
+A:function1是一個Generator Function，用於處理Redux Saga中的非同步操作，主要是發出一個POST request到指定的url，並根據不同狀況執行不同的action(詳細說明如下)。
+
+一、以構造函式創建一個新的AbortController object，用以根據需要中止request，將object賦值給ctrl。
+二、config object中定義了POST request時所需的參數，將ctrl的signal屬性賦值給config物件的signal。
+    後續在ctrl調用abort()方法時，config物件中的signal屬性就會發出中止信號，從而中止與該請求相關的操作。
+三、使用try...catch...處理可能發生異常的部分，避免導致程式執行停止或崩潰。
+    try: Redux Saga中透過call Effect調用Axios request，以config作為參數填入，如果成功，以put Effect觸發執行reducer 1。
+    catch: 如果出現異常，捕捉error object，檢查是否有response屬性，若有，則與Axios請求失敗相關，以yield put觸發執行reducer 2的action。
+    finally: 無論成功或失敗，都會執行。檢查ctrl.signal.aborted屬性，若為true，則有中止信號，yield put觸發執行reducer 3的action。
+
+```js
+import { call, put } from "redux-saga/effects";
+
+let ctrl;
+
+function* function1(action) {
+  //一
+  ctrl = new AbortController();
+
+  //二
+  const config = {
+    method: "POST",
+    url: "https://some-endpoint-url.com",
+    data: action.payload,
+    signal: ctrl.signal,
+  };
+
+  //三
+  try {
+    const { data } = yield call(/** a axios request with config */);
+
+    yield put(/** reducer 1 */);
+  } catch (e) {
+    if (e.response) {
+      const er = e.response;
+
+      yield put(/** reducer 2 */);
+
+      return;
+    }
+  } finally {
+    if (ctrl.signal.aborted) {
+      yield put(/** reducer 3 */);
+    }
+  }
+}
+
+function function2() {
+  ctrl.abort();
+}
+```
+
+2. Can we stop what "function1" is doing? How?
+A:可以。
+  只需調用ctrl.abort()即可中止，function2即是執行此動作，因此呼叫function2即可。
+
+3. How to optimize this snippet?
+A:
+一、function1和function2應取明確的名字，例如：sendRequest、cancelRequest。
+二、將「ctrl = new AbortController();」獨立寫成一個function，在請求需要被取消時再建立，亦可達到共用之目的。
+三、將url定義成一個含明確名字的變數，提高易讀性。
+四、可以使用axios.isAxiosError(error)來判斷錯誤是否來自Axios，更精準處理不同的錯誤類型。
+五、明確命名reducer的action type以增加易讀性。
+
